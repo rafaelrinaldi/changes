@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# TODO: Allow emojis
-# TODO: If there's not a changelog file already, create a new one from scratch, with all the releases available
-# TODO: Handle "no names found" error, when there are not tags available for the current repository
-
 if [[ ! -d ./.git ]]; then
   echo 'Not a Git repository.';
   exit;
