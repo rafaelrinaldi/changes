@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# TODO: Allow emojis
+# TODO: If there's not a changelog file already, create a new one from scratch, with all the releases available
+# TODO: Handle "no names found" error, when there are not tags available for the current repository
+
+if [[ ! -d ./.git ]]; then
+  echo 'Not a Git repository.';
+  exit;
+fi
+
+usage() {
+cat << EOF
+
+Usage: changes [PATH] [OPTIONS]
+
+  Keep track of your code releases.
+  Uses Git tags and SemVer to manage your project's changelog file.
+
+Example:
+  changes .
+
+Options:
+  -v --version             Display software version
+  -h --help                Display software usage
+  -t --template            Custom header template for changelog entries
+  -d --date                Custom date for changelog entries
+  -f --force               Force a fresh changelog file creation
+
+EOF
+}
+
+# Search for existing changelog files
+CHANGELOG_FILE_MATCHES=`ls | grep -i -E "^(changelog|history)"`
+CHANGELOG_FILE=`echo $CHANGELOG_FILE_MATCHES | tr " " "\n" | head -1`
+
+if [[ -z $CHANGELOG_FILE_MATCHES ]]; then
+  # Creating a fresh changelog file
+  CHANGELOG_FILE=./CHANGELOG.md
+  touch $CHANGELOG_FILE
+fi
+
+CHANGELOG_CONTENTS=`cat $CHANGELOG_FILE`
+GIT_TAG=`git describe --abbrev=0`
+CHANGELOG_TAG_MATCHES=`echo $CHANGELOG_CONTENTS | grep -i $GIT_TAG`
+
+if [[ ! -z $CHANGELOG_TAG_MATCHES ]]; then
+  echo -e "There's already an entry for the '$GIT_TAG' tag:\n"
+  echo -e "$CHANGELOG_CONTENTS" | head -n 5
+  echo "(…)"
+  exit;
+fi
+
+GIT_HISTORY_LOG=$(git log $GIT_TAG..HEAD --format="* %s")
+CHANGELOG_HEADER_TEMPLATE="# {{tag}} ({{today}})\n"
+TODAY=`date +"%Y\/%m\/%d"`
+
+echo -e "$CHANGELOG_HEADER_TEMPLATE" | sed -e "s/{{tag}}/$GIT_TAG/" -e "s/{{today}}/$TODAY/" > $CHANGELOG_FILE
+echo -e -n "$GIT_HISTORY_LOG\n\n" >> $CHANGELOG_FILE
+echo -e -n "$CHANGELOG_CONTENTS" >> $CHANGELOG_FILE
+
+echo "Changelog was successfully updated!"
